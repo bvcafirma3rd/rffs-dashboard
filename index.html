@@ -499,7 +499,7 @@ function renderAcceptedSavesSection(data) {
   // Build matrix
   var matrix = {};
   accepted.forEach(function(r) {
-    var p = r.plan || 'Ã¢ÂÂ'; var rep = r.rep || 'Ã¢ÂÂ';
+    var p = r.plan || '—'; var rep = r.rep || '—';
     if (!matrix[p]) matrix[p] = {};
     matrix[p][rep] = (matrix[p][rep] || 0) + 1;
   });
@@ -510,7 +510,7 @@ function renderAcceptedSavesSection(data) {
     var rowTotal = planCounts[plan] || 0;
     html += '<tr><td><strong>' + esc(plan) + '</strong></td>';
     reps.forEach(function(rep) {
-      html += '<td style="text-align:center">' + ((matrix[plan] && matrix[plan][rep]) || 'Ã¢ÂÂ') + '</td>';
+      html += '<td style="text-align:center">' + ((matrix[plan] && matrix[plan][rep]) || '—') + '</td>';
     });
     html += '<td style="text-align:center;font-weight:700;color:#0891b2">' + rowTotal + '</td></tr>';
   });
@@ -518,7 +518,7 @@ function renderAcceptedSavesSection(data) {
   html += '<tr style="background:#f0f9ff"><td><strong>Grand Total</strong></td>';
   reps.forEach(function(rep) {
     var total = accepted.filter(function(r){return r.rep===rep;}).length;
-    html += '<td style="text-align:center;font-weight:700">' + (total||'Ã¢ÂÂ') + '</td>';
+    html += '<td style="text-align:center;font-weight:700">' + (total||'—') + '</td>';
   });
   html += '<td style="text-align:center;font-weight:800;color:#0891b2">' + accepted.length + '</td></tr>';
   html += '</tbody></table>';
