@@ -41,6 +41,7 @@ input[type=date]:focus, select:focus { border-color: var(--primary); }
 .card.amber .cval { color: var(--warn); }
 .card.red .cval { color: var(--danger); }
 .card.purple .cval { color: #7c3aed; }
+.card.teal .cval { color: #0891b2; }
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
 .chart-card { background: var(--card); border-radius: 12px; padding: 20px 22px; border: 1px solid var(--border); }
 .chart-card.full { grid-column: 1 / -1; }
@@ -110,6 +111,7 @@ tbody tr:hover td { background: #fafbff; }
       <div class="card amber"><div class="clabel">Refunds</div><div class="cval" id="cRefunded">-</div><div class="csub">refund issued</div></div>
       <div class="card green"><div class="clabel">Saves</div><div class="cval" id="cSaved">-</div><div class="csub">retained customers</div></div>
       <div class="card purple"><div class="clabel">Escalated</div><div class="cval" id="cEscalated">-</div><div class="csub">escalated cases</div></div>
+      <div class="card teal"><div class="clabel">Accepted Saves</div><div class="cval" id="cAcceptedSaves">-</div><div class="csub">save offers accepted</div></div>
     </div>
     <div class="charts-grid">
       <div class="chart-card full"><h3>Daily Ticket Volume</h3><canvas id="trendChart" height="80"></canvas></div>
@@ -117,6 +119,20 @@ tbody tr:hover td { background: #fafbff; }
       <div class="chart-card"><h3>Resolution Breakdown</h3><canvas id="resoChart"></canvas></div>
       <div class="chart-card"><h3>Top Reasons / Issues</h3><canvas id="reasonChart"></canvas></div>
       <div class="chart-card"><h3>Cases by LOB</h3><canvas id="lobChart"></canvas></div>
+    </div>
+    <div class="chart-card full" style="margin-bottom:22px">
+      <h3>&#9989; Count of Accepted Save Offer (Action Done) â by Plan &amp; Rep</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:4px">
+        <div>
+          <p style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">By Plan</p>
+          <canvas id="acceptedSavesPlanChart"></canvas>
+        </div>
+        <div>
+          <p style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">By Rep</p>
+          <canvas id="acceptedSavesRepChart"></canvas>
+        </div>
+      </div>
+      <div id="acceptedSavesTableWrap" style="margin-top:18px;overflow-x:auto"></div>
     </div>
     <div class="table-card">
       <h3>Recent Tickets (Latest 50)</h3>
@@ -319,19 +335,22 @@ function renderAll() {
   renderResoChart(d);
   renderReasonChart(d);
   renderLobChart(d);
+  renderAcceptedSavesSection(d);
   renderTicketTable(d);
 }
 
 function renderCards(data) {
-  var cancelled = data.filter(function(r) { return /cancel/i.test(r.reso) || /cancel/i.test(r.status); }).length;
-  var refunded  = data.filter(function(r) { return /refund/i.test(r.reso); }).length;
-  var saved     = data.filter(function(r) { return /save|retain|dg|prorate|accept/i.test(r.reso); }).length;
-  var escalated = data.filter(function(r) { return /escalat/i.test(r.reso); }).length;
-  setText('cTotal',     data.length);
-  setText('cCancelled', cancelled);
-  setText('cRefunded',  refunded);
-  setText('cSaved',     saved);
-  setText('cEscalated', escalated);
+  var cancelled    = data.filter(function(r) { return /cancel/i.test(r.reso) || /cancel/i.test(r.status); }).length;
+  var refunded     = data.filter(function(r) { return /refund/i.test(r.reso); }).length;
+  var saved        = data.filter(function(r) { return /save|retain|dg|prorate|accept/i.test(r.reso); }).length;
+  var escalated    = data.filter(function(r) { return /escalat/i.test(r.reso); }).length;
+  var acceptedSaves = data.filter(function(r) { return /accept/i.test(r.reso); }).length;
+  setText('cTotal',         data.length);
+  setText('cCancelled',     cancelled);
+  setText('cRefunded',      refunded);
+  setText('cSaved',         saved);
+  setText('cEscalated',     escalated);
+  setText('cAcceptedSaves', acceptedSaves);
 }
 
 function renderTrendChart(data) {
@@ -402,6 +421,82 @@ function renderLobChart(data) {
     data: { labels: entries.map(function(e){return e[0];}), datasets: [{ data: entries.map(function(e){return e[1];}), backgroundColor: ['#4338ca','#10b981','#f59e0b','#ef4444'], borderWidth: 2, borderColor: '#fff' }] },
     options: { responsive: true, plugins: { legend: { position: 'right', labels: { font: { size: 12 }, boxWidth: 14 } } } }
   });
+}
+
+function renderAcceptedSavesSection(data) {
+  // Filter to records where Action Done contains "accept"
+  var accepted = data.filter(function(r) { return /accept/i.test(r.reso); });
+
+  // --- By Plan chart ---
+  var planCounts = countBy(accepted, 'plan');
+  var planEntries = Object.entries(planCounts).filter(function(e){return e[0];}).sort(function(a,b){return b[1]-a[1];});
+  destroyChart('acceptedPlan');
+  if (planEntries.length) {
+    charts.acceptedPlan = new Chart(document.getElementById('acceptedSavesPlanChart'), {
+      type: 'bar',
+      data: {
+        labels: planEntries.map(function(e){return e[0];}),
+        datasets: [{ label: 'Accepted Saves', data: planEntries.map(function(e){return e[1];}),
+          backgroundColor: ['#0891b2','#0e7490','#06b6d4','#67e8f9','#a5f3fc','#cffafe'],
+          borderRadius: 6 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
+    });
+  }
+
+  // --- By Rep chart ---
+  var repCounts = countBy(accepted, 'rep');
+  var repEntries = Object.entries(repCounts).filter(function(e){return e[0];}).sort(function(a,b){return b[1]-a[1];});
+  destroyChart('acceptedRep');
+  if (repEntries.length) {
+    charts.acceptedRep = new Chart(document.getElementById('acceptedSavesRepChart'), {
+      type: 'bar',
+      data: {
+        labels: repEntries.map(function(e){return e[0];}),
+        datasets: [{ label: 'Accepted Saves', data: repEntries.map(function(e){return e[1];}),
+          backgroundColor: ['#4338ca','#10b981','#f59e0b','#ef4444','#7c3aed','#0891b2'],
+          borderRadius: 6 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
+    });
+  }
+
+  // --- Summary table (Plan Ã Rep) ---
+  var plans = planEntries.map(function(e){return e[0];});
+  var reps  = repEntries.map(function(e){return e[0];});
+  if (!plans.length) {
+    document.getElementById('acceptedSavesTableWrap').innerHTML = '<p style="font-size:0.8rem;color:var(--muted)">No accepted save offers in selected range.</p>';
+    return;
+  }
+  // Build matrix
+  var matrix = {};
+  accepted.forEach(function(r) {
+    var p = r.plan || 'â'; var rep = r.rep || 'â';
+    if (!matrix[p]) matrix[p] = {};
+    matrix[p][rep] = (matrix[p][rep] || 0) + 1;
+  });
+  var html = '<table><thead><tr><th>Plan</th>';
+  reps.forEach(function(rep) { html += '<th>' + esc(rep) + '</th>'; });
+  html += '<th>Total</th></tr></thead><tbody>';
+  plans.forEach(function(plan) {
+    var rowTotal = planCounts[plan] || 0;
+    html += '<tr><td><strong>' + esc(plan) + '</strong></td>';
+    reps.forEach(function(rep) {
+      html += '<td style="text-align:center">' + ((matrix[plan] && matrix[plan][rep]) || 'â') + '</td>';
+    });
+    html += '<td style="text-align:center;font-weight:700;color:#0891b2">' + rowTotal + '</td></tr>';
+  });
+  // Grand total row
+  html += '<tr style="background:#f0f9ff"><td><strong>Grand Total</strong></td>';
+  reps.forEach(function(rep) {
+    var total = accepted.filter(function(r){return r.rep===rep;}).length;
+    html += '<td style="text-align:center;font-weight:700">' + (total||'â') + '</td>';
+  });
+  html += '<td style="text-align:center;font-weight:800;color:#0891b2">' + accepted.length + '</td></tr>';
+  html += '</tbody></table>';
+  document.getElementById('acceptedSavesTableWrap').innerHTML = html;
 }
 
 function renderTicketTable(data) {
