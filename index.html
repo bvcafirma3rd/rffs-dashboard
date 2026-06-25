@@ -42,6 +42,12 @@ input[type=date]:focus, select:focus { border-color: var(--primary); }
 .card.red .cval { color: var(--danger); }
 .card.purple .cval { color: #7c3aed; }
 .card.teal .cval { color: #0891b2; }
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 22px; }
+.tab-btn { padding: 10px 22px; font-size: 0.85rem; font-weight: 700; background: none; border: none; border-bottom: 3px solid transparent; margin-bottom: -2px; cursor: pointer; color: var(--muted); transition: all 0.15s; border-radius: 6px 6px 0 0; }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-btn:hover:not(.active) { color: var(--text); background: #f8fafc; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
 .chart-card { background: var(--card); border-radius: 12px; padding: 20px 22px; border: 1px solid var(--border); }
 .chart-card.full { grid-column: 1 / -1; }
@@ -111,35 +117,45 @@ tbody tr:hover td { background: #fafbff; }
       <div class="card amber"><div class="clabel">Refunds</div><div class="cval" id="cRefunded">-</div><div class="csub">refund issued</div></div>
       <div class="card green"><div class="clabel">Saves</div><div class="cval" id="cSaved">-</div><div class="csub">retained customers</div></div>
       <div class="card purple"><div class="clabel">Escalated</div><div class="cval" id="cEscalated">-</div><div class="csub">escalated cases</div></div>
-      <div class="card teal"><div class="clabel">Accepted Saves</div><div class="cval" id="cAcceptedSaves">-</div><div class="csub">save offers accepted</div></div>
+      <div class="card teal"><div class="clabel">Accepted Saves</div><div class="cval" id="cAcceptedSaves">-</div><div class="csub">accepted save offers</div></div>
     </div>
-    <div class="charts-grid">
-      <div class="chart-card full"><h3>Daily Ticket Volume</h3><canvas id="trendChart" height="80"></canvas></div>
-      <div class="chart-card"><h3>Tickets by Rep</h3><canvas id="repChart"></canvas></div>
-      <div class="chart-card"><h3>Resolution Breakdown</h3><canvas id="resoChart"></canvas></div>
-      <div class="chart-card"><h3>Top Reasons / Issues</h3><canvas id="reasonChart"></canvas></div>
-      <div class="chart-card"><h3>Cases by LOB</h3><canvas id="lobChart"></canvas></div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">&#128202; Overview</button>
+      <button class="tab-btn" data-tab="saves" onclick="switchTab('saves')">&#9989; Saves &amp; Retained</button>
     </div>
-    <div class="chart-card full" style="margin-bottom:22px">
-      <h3>&#9989; Count of Accepted Save Offer (Action Done) â by Plan &amp; Rep</h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:4px">
-        <div>
-          <p style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">By Plan</p>
-          <canvas id="acceptedSavesPlanChart"></canvas>
-        </div>
-        <div>
-          <p style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">By Rep</p>
-          <canvas id="acceptedSavesRepChart"></canvas>
-        </div>
+
+    <div id="tab-overview" class="tab-pane active">
+      <div class="charts-grid">
+        <div class="chart-card full"><h3>Daily Ticket Volume</h3><canvas id="trendChart" height="80"></canvas></div>
+        <div class="chart-card"><h3>Tickets by Rep</h3><canvas id="repChart"></canvas></div>
+        <div class="chart-card"><h3>Resolution Breakdown</h3><canvas id="resoChart"></canvas></div>
+        <div class="chart-card"><h3>Top Reasons / Issues</h3><canvas id="reasonChart"></canvas></div>
+        <div class="chart-card"><h3>Cases by LOB</h3><canvas id="lobChart"></canvas></div>
       </div>
-      <div id="acceptedSavesTableWrap" style="margin-top:18px;overflow-x:auto"></div>
+      <div class="table-card">
+        <h3>Recent Tickets (Latest 50)</h3>
+        <table>
+          <thead><tr><th>Date</th><th>Rep</th><th>LOB</th><th>Plan</th><th>Status</th><th>Reason/Issue</th><th>Resolution</th><th>Payment</th></tr></thead>
+          <tbody id="ticketTableBody"></tbody>
+        </table>
+      </div>
     </div>
-    <div class="table-card">
-      <h3>Recent Tickets (Latest 50)</h3>
-      <table>
-        <thead><tr><th>Date</th><th>Rep</th><th>LOB</th><th>Plan</th><th>Status</th><th>Reason/Issue</th><th>Resolution</th><th>Payment</th></tr></thead>
-        <tbody id="ticketTableBody"></tbody>
-      </table>
+
+    <div id="tab-saves" class="tab-pane">
+      <div class="chart-card full" style="margin-bottom:22px">
+        <h3>&#9989; Saves &amp; Retained Customers &mdash; by Plan &amp; Rep</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:4px">
+          <div>
+            <p style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">By Plan</p>
+            <canvas id="acceptedSavesPlanChart"></canvas>
+          </div>
+          <div>
+            <p style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">By Rep</p>
+            <canvas id="acceptedSavesRepChart"></canvas>
+          </div>
+        </div>
+        <div id="acceptedSavesTableWrap" style="margin-top:18px;overflow-x:auto"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -150,6 +166,16 @@ var LOCAL_CSV = './data/qa_source.csv';
 var SHEETS_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&gid=' + SOURCE_GID;
 var allData = [];
 var charts = {};
+var activeTab = 'overview';
+
+function switchTab(name) {
+  activeTab = name;
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelector('.tab-btn[data-tab="' + name + '"]').classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'saves') renderAcceptedSavesSection(getFiltered());
+}
 
 async function loadData() {
   showLoading('Loading data...');
@@ -335,8 +361,8 @@ function renderAll() {
   renderResoChart(d);
   renderReasonChart(d);
   renderLobChart(d);
-  renderAcceptedSavesSection(d);
   renderTicketTable(d);
+  if (activeTab === 'saves') renderAcceptedSavesSection(d);
 }
 
 function renderCards(data) {
@@ -424,8 +450,8 @@ function renderLobChart(data) {
 }
 
 function renderAcceptedSavesSection(data) {
-  // Filter to records where Action Done contains "accept"
-  var accepted = data.filter(function(r) { return /accept/i.test(r.reso); });
+  // Filter to all saved/retained records (Save, Retain, DG, Prorate, Accept)
+  var accepted = data.filter(function(r) { return /save|retain|dg|prorate|accept/i.test(r.reso); });
 
   // --- By Plan chart ---
   var planCounts = countBy(accepted, 'plan');
@@ -436,7 +462,7 @@ function renderAcceptedSavesSection(data) {
       type: 'bar',
       data: {
         labels: planEntries.map(function(e){return e[0];}),
-        datasets: [{ label: 'Accepted Saves', data: planEntries.map(function(e){return e[1];}),
+        datasets: [{ label: 'Saves & Retained', data: planEntries.map(function(e){return e[1];}),
           backgroundColor: ['#0891b2','#0e7490','#06b6d4','#67e8f9','#a5f3fc','#cffafe'],
           borderRadius: 6 }]
       },
@@ -454,7 +480,7 @@ function renderAcceptedSavesSection(data) {
       type: 'bar',
       data: {
         labels: repEntries.map(function(e){return e[0];}),
-        datasets: [{ label: 'Accepted Saves', data: repEntries.map(function(e){return e[1];}),
+        datasets: [{ label: 'Saves & Retained', data: repEntries.map(function(e){return e[1];}),
           backgroundColor: ['#4338ca','#10b981','#f59e0b','#ef4444','#7c3aed','#0891b2'],
           borderRadius: 6 }]
       },
@@ -467,7 +493,7 @@ function renderAcceptedSavesSection(data) {
   var plans = planEntries.map(function(e){return e[0];});
   var reps  = repEntries.map(function(e){return e[0];});
   if (!plans.length) {
-    document.getElementById('acceptedSavesTableWrap').innerHTML = '<p style="font-size:0.8rem;color:var(--muted)">No accepted save offers in selected range.</p>';
+    document.getElementById('acceptedSavesTableWrap').innerHTML = '<p style="font-size:0.8rem;color:var(--muted)">No saves or retained customers in selected range.</p>';
     return;
   }
   // Build matrix
@@ -523,49 +549,4 @@ function statusBadge(s) {
   else if (/refund/i.test(s)) cls = 'badge-amber';
   else if (/terminat/i.test(s)) cls = 'badge-red';
   else if (/past due/i.test(s)) cls = 'badge-amber';
-  return '<span class="badge ' + cls + '">' + esc(s) + '</span>';
-}
-
-function resoBadge(s) {
-  if (!s) return '<span class="badge badge-gray">-</span>';
-  var cls = 'badge-gray';
-  if (/cancel/i.test(s)) cls = 'badge-red';
-  else if (/refund/i.test(s)) cls = 'badge-amber';
-  else if (/save|retain|dg|prorate|accept/i.test(s)) cls = 'badge-green';
-  else if (/escalat/i.test(s)) cls = 'badge-purple';
-  return '<span class="badge ' + cls + '">' + esc(s) + '</span>';
-}
-
-function countBy(arr, key) {
-  var acc = {};
-  arr.forEach(function(r) { var v = r[key] || ''; acc[v] = (acc[v] || 0) + 1; });
-  return acc;
-}
-function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete charts[key]; } }
-function setText(id, val) { document.getElementById(id).textContent = val; }
-function pad(n) { return String(n).padStart(2, '0'); }
-function esc(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function updateLastUpdated() {
-  fetch('./data/last_updated.txt?t=' + Date.now())
-    .then(function(r) { return r.ok ? r.text() : null; })
-    .then(function(t) {
-      var el = document.getElementById('lastUpdated');
-      if (t) {
-        var d = new Date(t.trim());
-        el.textContent = 'Data updated: ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      } else {
-        el.textContent = 'Loaded: ' + new Date().toLocaleDateString();
-      }
-    })
-    .catch(function() {
-      document.getElementById('lastUpdated').textContent = 'Loaded: ' + new Date().toLocaleDateString();
-    });
-}
-
-loadData();
-</script>
-</body>
-</html>
+  return '<span class="badge ' + cls + '">' + esc(s) + '</span
