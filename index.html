@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cancellation Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f0f4f8; --card: #ffffff; --primary: #4338ca; --primary-light: #6366f1;
+  --accent: #10b981; --warn: #f59e0b; --danger: #ef4444;
+  --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+header { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+header h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; }
+header .sub { font-size: 0.78rem; opacity: 0.75; margin-top: 3px; }
+#lastUpdated { font-size: 0.75rem; opacity: 0.7; text-align: right; }
+.controls { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 28px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ctrl-group { display: flex; align-items: center; gap: 6px; }
+.ctrl-label { font-size: 0.78rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+input[type=date], select { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 0.82rem; color: var(--text); background: white; outline: none; }
+input[type=date]:focus, select:focus { border-color: var(--primary); }
+.btn { background: var(--primary); color: white; border: none; border-radius: 6px; padding: 7px 16px; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+.btn:hover { opacity: 0.85; }
+.btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+.btn-outline:hover { background: #eff0ff; opacity: 1; }
+.btn-sm { padding: 5px 12px; font-size: 0.78rem; }
+.spacer { flex: 1; }
+.content { padding: 22px 28px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.card { background: var(--card); border-radius: 12px; padding: 18px 20px; border: 1px solid var(--border); transition: box-shadow 0.2s; }
+.card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.07); }
+.card .clabel { font-size: 0.7rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.card .cval { font-size: 1.9rem; font-weight: 800; margin: 6px 0 2px; line-height: 1; }
+.card .csub { font-size: 0.74rem; color: var(--muted); }
+.card.blue .cval { color: var(--primary); }
+.card.green .cval { color: var(--accent); }
+.card.amber .cval { color: var(--warn); }
+.card.red .cval { color: var(--danger); }
+.card.purple .cval { color: #7c3aed; }
+.card.teal .cval { color: #0891b2; }
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 22px; }
+.tab-btn { padding: 10px 22px; font-size: 0.85rem; font-weight: 700; background: none; border: none; border-bottom: 3px solid transparent; margin-bottom: -2px; cursor: pointer; color: var(--muted); transition: all 0.15s; border-radius: 6px 6px 0 0; }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-btn:hover:not(.active) { color: var(--text); background: #f8fafc; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+.chart-card { background: var(--card); border-radius: 12px; padding: 20px 22px; border: 1px solid var(--border); }
+.chart-card.full { grid-column: 1 / -1; }
+.chart-card h3 { font-size: 0.72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px; }
+.table-card { background: var(--card); border-radius: 12px; padding: 20px 22px; border: 1px solid var(--border); margin-bottom: 22px; overflow-x: auto; }
+.table-card h3 { font-size: 0.72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+thead th { text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--border); font-weight: 700; color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+tbody td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #fafbff; }
+.badge { display: inline-flex; align-items: center; justify-content: center; padding: 2px 10px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; }
+.badge-green { background: #d1fae5; color: #065f46; }
+.badge-amber { background: #fef3c7; color: #92400e; }
+.badge-red { background: #fee2e2; color: #991b1b; }
+.badge-blue { background: #dbeafe; color: #1e40af; }
+.badge-purple { background: #ede9fe; color: #5b21b6; }
+.badge-gray { background: #f1f5f9; color: #64748b; }
+#loadingState { text-align: center; padding: 80px 20px; color: var(--muted); }
+.spinner { width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 14px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 720px) {
+  .charts-grid { grid-template-columns: 1fr; }
+  .content { padding: 16px; }
+  header { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>&#128202; Cancellation Dashboard</h1>
+    <div class="sub">Cancellation &amp; Support Tracker</div>
+  </div>
+  <div id="lastUpdated"></div>
+</header>
+<div class="controls">
+  <div class="ctrl-group"><span class="ctrl-label">From</span><input type="date" id="dateFrom"></div>
+  <div class="ctrl-group"><span class="ctrl-label">To</span><input type="date" id="dateTo"></div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">Rep</span>
+    <select id="repFilter"><option value="">All Reps</option></select>
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">LOB</span>
+    <select id="lobFilter"><option value="">All LOB</option></select>
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">Status</span>
+    <select id="statusFilter"><option value="">All Status</option></select>
+  </div>
+  <button class="btn" onclick="applyFilters()">Apply</button>
+  <button class="btn btn-outline" onclick="resetFilters()">Reset</button>
+  <div class="spacer"></div>
+  <button class="btn btn-sm" onclick="loadData()" title="Refresh data">&#8635; Refresh</button>
+</div>
+<div class="content">
+  <div id="loadingState">
+    <div class="spinner"></div>
+    <strong>Loading dashboard data...</strong>
+    <p style="margin-top:6px;font-size:0.8rem;">Fetching from Google Sheets</p>
+  </div>
+  <div id="dashboardContent" style="display:none">
+    <div class="cards">
+      <div class="card blue"><div class="clabel">Total Tickets</div><div class="cval" id="cTotal">-</div><div class="csub">in selected range</div></div>
+      <div class="card red"><div class="clabel">Cancellations</div><div class="cval" id="cCancelled">-</div><div class="csub">canceled accounts</div></div>
+      <div class="card amber"><div class="clabel">Refunds</div><div class="cval" id="cRefunded">-</div><div class="csub">refund issued</div></div>
+      <div class="card green"><div class="clabel">Saves</div><div class="cval" id="cSaved">-</div><div class="csub">retained customers</div></div>
+      <div class="card purple"><div class="clabel">Escalated</div><div class="cval" id="cEscalated">-</div><div class="csub">escalated cases</div></div>
+      <div class="card teal"><div class="clabel">Accepted Saves</div><div class="cval" id="cAcceptedSaves">-</div><div class="csub">accepted save offers</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">&#128202; Overview</button>
+      <button class="tab-btn" data-tab="saves" onclick="switchTab('saves')">&#9989; Saves &amp; Retained</button>
+    </div>
+
+    <div id="tab-overview" class="tab-pane active">
+      <div class="charts-grid">
+        <div class="chart-card full"><h3>Daily Ticket Volume</h3><canvas id="trendChart" height="80"></canvas></div>
+        <div class="chart-card"><h3>Tickets by Rep</h3><canvas id="repChart"></canvas></div>
+        <div class="chart-card"><h3>Resolution Breakdown</h3><canvas id="resoChart"></canvas></div>
+        <div class="chart-card"><h3>Top Reasons / Issues</h3><canvas id="reasonChart"></canvas></div>
+        <div class="chart-card"><h3>Cases by LOB</h3><canvas id="lobChart"></canvas></div>
+      </div>
+      <div class="table-card">
+        <h3>Recent Tickets (Latest 50)</h3>
+        <table>
+          <thead><tr><th>Date</th><th>Rep</th><th>LOB</th><th>Plan</th><th>Status</th><th>Reason/Issue</th><th>Resolution</th><th>Payment</th></tr></thead>
+          <tbody id="ticketTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-saves" class="tab-pane">
+      <div class="chart-card full" style="margin-bottom:22px">
+        <h3>&#9989; Saves &amp; Retained Customers &mdash; by Plan &amp; Rep</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:4px">
+          <div>
+            <p style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">By Plan</p>
+            <canvas id="acceptedSavesPlanChart"></canvas>
+          </div>
+          <div>
+            <p style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">By Rep</p>
+            <canvas id="acceptedSavesRepChart"></canvas>
+          </div>
+        </div>
+        <div id="acceptedSavesTableWrap" style="margin-top:18px;overflow-x:auto"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+var SHEET_ID = '1xdG1e_PtrduC79xWaHf_D_53-Ktk-gxVAN1PCKEzW9E';
+var SOURCE_GID = '1776830323';
+var LOCAL_CSV = './data/qa_source.csv';
+var SHEETS_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&gid=' + SOURCE_GID;
+var allData = [];
+var charts = {};
+var activeTab = 'overview';
+
+function switchTab(name) {
+  activeTab = name;
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelector('.tab-btn[data-tab="' + name + '"]').classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'saves') renderAcceptedSavesSection(getFiltered());
+}
+
+async function loadData() {
+  showLoading('Loading data...');
+  var csv = null;
+  try {
+    var r1 = await fetch(LOCAL_CSV + '?t=' + Date.now());
+    if (r1.ok) csv = await r1.text();
+  } catch(e1) {}
+  if (!csv) {
+    try {
+      var r2 = await fetch(SHEETS_URL);
+      if (r2.ok) csv = await r2.text();
+    } catch(e2) { console.warn('Sheets fetch failed:', e2); }
+  }
+  if (!csv) {
+    showLoading('Could not load data. Make sure the Google Sheet is shared publicly.', true);
+    return;
+  }
+  parseCSV(csv);
+}
+
+function showLoading(msg, isError) {
+  document.getElementById('dashboardContent').style.display = 'none';
+  var el = document.getElementById('loadingState');
+  el.style.display = 'block';
+  el.style.color = isError ? '#ef4444' : '#64748b';
+  el.innerHTML = isError
+    ? '<div style="font-size:2rem;margin-bottom:10px">&#9888;</div>' + msg
+    : '<div class="spinner"></div><strong>' + msg + '</strong>';
+}
+
+function parseCSV(csvText) {
+  var result = Papa.parse(csvText, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: function(h) { return h.trim(); }
+  });
+  var data = result.data;
+  var headers = result.meta.fields || [];
+
+  // Find column by keyword, normalizing whitespace/newlines
+  function findCol() {
+    for (var i = 0; i < arguments.length; i++) {
+      var term = arguments[i].toLowerCase();
+      var found = headers.find(function(h) {
+        return h.toLowerCase().replace(/[\s\n\r]+/g, ' ').indexOf(term) !== -1;
+      });
+      if (found) return found;
+    }
+    return null;
+  }
+
+  var K_DATE   = findCol('date');
+  var K_LOB    = findCol('lob');
+  var K_EMAIL  = findCol('email');
+  var K_PLAN   = findCol('plan');
+  var K_STATUS = findCol('status');
+  var K_REASON = findCol('reason');
+  var K_PAY    = findCol('payment');
+  var K_NOTES  = findCol('notes');
+  var K_RESO   = findCol('reso', 'action done', 'resolution');
+  var K_REP    = findCol('rep');
+
+  allData = data.map(function(r) {
+    return {
+      date:   parseDate(r[K_DATE]),
+      dateRaw: (r[K_DATE] || '').trim(),
+      lob:    (r[K_LOB]    || '').trim(),
+      email:  (r[K_EMAIL]  || '').trim(),
+      plan:   (r[K_PLAN]   || '').trim(),
+      status: (r[K_STATUS] || '').trim(),
+      reason: (r[K_REASON] || '').trim(),
+      pay:    (r[K_PAY]    || '').trim(),
+      notes:  (r[K_NOTES]  || '').trim(),
+      reso:   (r[K_RESO]   || '').trim(),
+      rep:    (r[K_REP]    || '').trim()
+    };
+  }).filter(function(r) {
+    return r.rep && r.date && !isNaN(r.date.getTime());
+  });
+
+  if (!allData.length) {
+    showLoading('Data loaded but no valid rows found. Check column headers.', true);
+    return;
+  }
+
+  buildFilters();
+  setDefaultDateRange();
+  updateLastUpdated();
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('dashboardContent').style.display = 'block';
+  renderAll();
+}
+
+function parseDate(s) {
+  if (!s) return null;
+  var trimmed = s.trim().replace(/[^0-9\/\-]/g, '');
+  if (!trimmed) return null;
+  var parts = trimmed.split(/[\/\-]/);
+  if (parts.length === 3) {
+    var m = parseInt(parts[0], 10);
+    var day = parseInt(parts[1], 10);
+    var y = parseInt(parts[2], 10);
+    if (y < 100) y += 2000;
+    if (y > 2100) return null;
+    var d = new Date(y, m - 1, day);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  var d2 = new Date(s);
+  return isNaN(d2.getTime()) ? null : d2;
+}
+
+function fmtDate(d) {
+  if (!d) return '-';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function dateInput(d) {
+  if (!d) return '';
+  return d.toISOString().split('T')[0];
+}
+
+function buildFilters() {
+  var reps = [], repSet = {};
+  var lobs = [], lobSet = {};
+  var statuses = [], statusSet = {};
+  allData.forEach(function(r) {
+    if (r.rep && !repSet[r.rep]) { repSet[r.rep] = true; reps.push(r.rep); }
+    if (r.lob && !lobSet[r.lob]) { lobSet[r.lob] = true; lobs.push(r.lob); }
+    if (r.status && !statusSet[r.status]) { statusSet[r.status] = true; statuses.push(r.status); }
+  });
+  reps.sort(); lobs.sort(); statuses.sort();
+  fillSelect('repFilter', reps, 'All Reps');
+  fillSelect('lobFilter', lobs, 'All LOB');
+  fillSelect('statusFilter', statuses, 'All Status');
+}
+
+function fillSelect(id, options, placeholder) {
+  var sel = document.getElementById(id);
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">' + placeholder + '</option>' +
+    options.map(function(o) { return '<option value="' + esc(o) + '">' + esc(o) + '</option>'; }).join('');
+  sel.value = cur;
+}
+
+function setDefaultDateRange() {
+  var dates = allData.map(function(r) { return r.date; }).sort(function(a, b) { return a - b; });
+  document.getElementById('dateFrom').value = dateInput(dates[0]);
+  document.getElementById('dateTo').value = dateInput(dates[dates.length - 1]);
+}
+
+function applyFilters() { renderAll(); }
+function resetFilters() {
+  setDefaultDateRange();
+  document.getElementById('repFilter').value = '';
+  document.getElementById('lobFilter').value = '';
+  document.getElementById('statusFilter').value = '';
+  renderAll();
+}
+
+function getFiltered() {
+  var fromVal = document.getElementById('dateFrom').value;
+  var toVal = document.getElementById('dateTo').value;
+  var from = fromVal ? new Date(fromVal) : null;
+  var to = toVal ? new Date(toVal + 'T23:59:59') : null;
+  var rep = document.getElementById('repFilter').value;
+  var lob = document.getElementById('lobFilter').value;
+  var status = document.getElementById('statusFilter').value;
+  return allData.filter(function(r) {
+    if (from && r.date < from) return false;
+    if (to && r.date > to) return false;
+    if (rep && r.rep !== rep) return false;
+    if (lob && r.lob !== lob) return false;
+    if (status && r.status !== status) return false;
+    return true;
+  });
+}
+
+function renderAll() {
+  var d = getFiltered();
+  renderCards(d);
+  renderTrendChart(d);
+  renderRepChart(d);
+  renderResoChart(d);
+  renderReasonChart(d);
+  renderLobChart(d);
+  renderTicketTable(d);
+  if (activeTab === 'saves') renderAcceptedSavesSection(d);
+}
+
+function renderCards(data) {
+  var cancelled    = data.filter(function(r) { return /cancel/i.test(r.reso) || /cancel/i.test(r.status); }).length;
+  var refunded     = data.filter(function(r) { return /refund/i.test(r.reso); }).length;
+  var saved        = data.filter(function(r) { return /save|retain|dg|prorate|accept/i.test(r.reso); }).length;
+  var escalated    = data.filter(function(r) { return /escalat/i.test(r.reso); }).length;
+  var acceptedSaves = data.filter(function(r) { return /accept/i.test(r.reso); }).length;
+  setText('cTotal',         data.length);
+  setText('cCancelled',     cancelled);
+  setText('cRefunded',      refunded);
+  setText('cSaved',         saved);
+  setText('cEscalated',     escalated);
+  setText('cAcceptedSaves', acceptedSaves);
+}
+
+function renderTrendChart(data) {
+  var byDay = {};
+  data.forEach(function(r) {
+    var k = r.date.getFullYear() + '-' + pad(r.date.getMonth()+1) + '-' + pad(r.date.getDate());
+    byDay[k] = (byDay[k] || 0) + 1;
+  });
+  var keys = Object.keys(byDay).sort();
+  var labels = keys.map(function(k) {
+    var p = k.split('-');
+    return new Date(+p[0], +p[1]-1, +p[2]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  });
+  destroyChart('trend');
+  charts.trend = new Chart(document.getElementById('trendChart'), {
+    type: 'bar',
+    data: { labels: labels, datasets: [{ label: 'Tickets', data: keys.map(function(k){return byDay[k];}), backgroundColor: 'rgba(99,102,241,0.7)', borderRadius: 4 }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
+  });
+}
+
+function renderRepChart(data) {
+  var counts = countBy(data, 'rep');
+  var entries = Object.entries(counts).sort(function(a,b){return b[1]-a[1];});
+  destroyChart('rep');
+  charts.rep = new Chart(document.getElementById('repChart'), {
+    type: 'bar',
+    data: {
+      labels: entries.map(function(e){return e[0];}),
+      datasets: [{ label: 'Tickets', data: entries.map(function(e){return e[1];}), backgroundColor: ['#4338ca','#10b981','#f59e0b','#ef4444','#7c3aed','#0891b2'], borderRadius: 6 }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
+  });
+}
+
+function renderResoChart(data) {
+  var counts = countBy(data, 'reso');
+  var entries = Object.entries(counts).filter(function(e){return e[0];}).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  var colors = ['#ef4444','#f59e0b','#10b981','#4338ca','#7c3aed','#0891b2','#64748b','#ec4899'];
+  destroyChart('reso');
+  charts.reso = new Chart(document.getElementById('resoChart'), {
+    type: 'doughnut',
+    data: { labels: entries.map(function(e){return e[0]||'N/A';}), datasets: [{ data: entries.map(function(e){return e[1];}), backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, plugins: { legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12 } } } }
+  });
+}
+
+function renderReasonChart(data) {
+  var counts = countBy(data, 'reason');
+  var entries = Object.entries(counts).filter(function(e){return e[0];}).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  destroyChart('reason');
+  charts.reason = new Chart(document.getElementById('reasonChart'), {
+    type: 'bar',
+    data: {
+      labels: entries.map(function(e){return e[0].length>30?e[0].slice(0,28)+'...':e[0];}),
+      datasets: [{ label: 'Count', data: entries.map(function(e){return e[1];}), backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 4 }]
+    },
+    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } } }
+  });
+}
+
+function renderLobChart(data) {
+  var counts = countBy(data, 'lob');
+  var entries = Object.entries(counts).filter(function(e){return e[0];}).sort(function(a,b){return b[1]-a[1];});
+  destroyChart('lob');
+  charts.lob = new Chart(document.getElementById('lobChart'), {
+    type: 'pie',
+    data: { labels: entries.map(function(e){return e[0];}), datasets: [{ data: entries.map(function(e){return e[1];}), backgroundColor: ['#4338ca','#10b981','#f59e0b','#ef4444'], borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, plugins: { legend: { position: 'right', labels: { font: { size: 12 }, boxWidth: 14 } } } }
+  });
+}
+
+function renderAcceptedSavesSection(data) {
+  // Filter to all saved/retained records (Save, Retain, DG, Prorate, Accept)
+  var accepted = data.filter(function(r) { return /save|retain|dg|prorate|accept/i.test(r.reso); });
+
+  // --- By Plan chart ---
+  var planCounts = countBy(accepted, 'plan');
+  var planEntries = Object.entries(planCounts).filter(function(e){return e[0];}).sort(function(a,b){return b[1]-a[1];});
+  destroyChart('acceptedPlan');
+  if (planEntries.length) {
+    charts.acceptedPlan = new Chart(document.getElementById('acceptedSavesPlanChart'), {
+      type: 'bar',
+      data: {
+        labels: planEntries.map(function(e){return e[0];}),
+        datasets: [{ label: 'Saves & Retained', data: planEntries.map(function(e){return e[1];}),
+          backgroundColor: ['#0891b2','#0e7490','#06b6d4','#67e8f9','#a5f3fc','#cffafe'],
+          borderRadius: 6 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
+    });
+  }
+
+  // --- By Rep chart ---
+  var repCounts = countBy(accepted, 'rep');
+  var repEntries = Object.entries(repCounts).filter(function(e){return e[0];}).sort(function(a,b){return b[1]-a[1];});
+  destroyChart('acceptedRep');
+  if (repEntries.length) {
+    charts.acceptedRep = new Chart(document.getElementById('acceptedSavesRepChart'), {
+      type: 'bar',
+      data: {
+        labels: repEntries.map(function(e){return e[0];}),
+        datasets: [{ label: 'Saves & Retained', data: repEntries.map(function(e){return \e[1];}),
+          backgroundColor: ['#4338ca','#10b981','#f59e0b','#ef4444','#7c3aed','#0891b2'],
+          borderRadius: 6 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
+    });
+  }
+
+  // --- Summary table (Plan ÃÂ Rep) ---
+  var plans = planEntries.map(function(e){return e[0];});
+  var reps  = repEntries.map(function(e){return e[0];});
+  if (!plans.length) {
+    document.getElementById('acceptedSavesTableWrap').innerHTML = '<p style="font-size:0.8rem;color:var(--muted)">No saves or retained customers in selected range.</p>';
+    return;
+  }
+  // Build matrix
+  var matrix = {};
+  accepted.forEach(function(r) {
+    var p = r.plan || 'Ã¢ÂÂ'; var rep = r.rep || 'Ã¢ÂÂ';
+    if (!matrix[p]) matrix[p] = {};
+    matrix[p][rep] = (matrix[p][rep] || 0) + 1;
+  });
+  var html = '<table><thead><tr><th>Plan</th>';
+  reps.forEach(function(rep) { html += '<th>' + esc(rep) + '</th>'; });
+  html += '<th>Total</th></tr></thead><tbody>';
+  plans.forEach(function(plan) {
+    var rowTotal = planCounts[plan] || 0;
+    html += '<tr><td><strong>' + esc(plan) + '</strong></td>';
+    reps.forEach(function(rep) {
+      html += '<td style="text-align:center">' + ((matrix[plan] && matrix[plan][rep]) || 'Ã¢ÂÂ') + '</td>';
+    });
+    html += '<td style="text-align:center;font-weight:700;color:#0891b2">' + rowTotal + '</td></tr>';
+  });
+  // Grand total row
+  html += '<tr style="background:#f0f9ff"><td><strong>Grand Total</strong></td>';
+  reps.forEach(function(rep) {
+    var total = accepted.filter(function(r){return r.rep===rep;}).length;
+    html += '<td style="text-align:center;font-weight:700">' + (total||'Ã¢ÂÂ') + '</td>';
+  });
+  html += '<td style="text-align:center;font-weight:800;color:#0891b2">' + accepted.length + '</td></tr>';
+  html += '</tbody></table>';
+  document.getElementById('acceptedSavesTableWrap').innerHTML = html;
+}
+
+function renderTicketTable(data) {
+  var rows = data.slice().sort(function(a,b){return b.date-a.date;}).slice(0,50);
+  document.getElementById('ticketTableBody').innerHTML = rows.map(function(r) {
+    return '<tr>' +
+      '<td>' + fmtDate(r.date) + '</td>' +
+      '<td><strong>' + esc(r.rep) + '</strong></td>' +
+      '<td>' + esc(r.lob) + '</td>' +
+      '<td>' + esc(r.plan) + '</td>' +
+      '<td>' + statusBadge(r.status) + '</td>' +
+      '<td>' + esc(r.reason) + '</td>' +
+      '<td>' + resoBadge(r.reso) + '</td>' +
+      '<td>' + esc(r.pay) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function statusBadge(s) {
+  if (!s) return '<span class="badge badge-gray">-</span>';
+  var cls = 'badge-gray';
+  if (/cancel/i.test(s)) cls = 'badge-red';
+  else if (/active/i.test(s)) cls = 'badge-green';
+  else if (/refund/i.test(s)) cls = 'badge-amber';
+  else if (/terminat/i.test(s)) cls = 'badge-red';
+  else if (/past due/i.test(s)) cls = 'badge-amber';
+  return '<span class="badge ' + cls + '">' + esc(s) + '</span>';
+}
+
+function resoBadge(s) {
+  if (!s) return '<span class="badge badge-gray">-</span>';
+  var cls = 'badge-gray';
+  if (/cancel/i.test(s)) cls = 'badge-red';
+  else if (/refund/i.test(s)) cls = 'badge-amber';
+  else if (/save|retain|dg|prorate|accept/i.test(s)) cls = 'badge-green';
+  else if (/escalat/i.test(s)) cls = 'badge-purple';
+  return '<span class="badge ' + cls + '">' + esc(s) + '</span>';
+}
+
+function countBy(arr, key) {
+  var acc = {};
+  arr.forEach(function(r) { var v = r[key] || ''; acc[v] = (acc[v] || 0) + 1; });
+  return acc;
+}
+function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete charts[key]; } }
+function setText(id, val) { document.getElementById(id).textContent = val; }
+function pad(n) { return String(n).padStart(2, '0'); }
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function updateLastUpdated() {
+  fetch('./data/last_updated.txt?t=' + Date.now())
+    .then(function(r) { return r.ok ? r.text() : null; })
+    .then(function(t) {
+      var el = document.getElementById('lastUpdated');
+      if (t) {
+        var d = new Date(t.trim());
+        el.textContent = 'Data updated: ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      } else {
+        el.textContent = 'Loaded: ' + new Date().toLocaleDateString();
+      }
+    })
+    .catch(function() {
+      document.getElementById('lastUpdated').textContent = 'Loaded: ' + new Date().toLocaleDateString();
+    });
+}
+
+loadData();
+</script>
+</body>
+</html>
