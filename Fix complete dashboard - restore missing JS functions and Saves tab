@@ -480,7 +480,7 @@ function renderAcceptedSavesSection(data) {
       type: 'bar',
       data: {
         labels: repEntries.map(function(e){return e[0];}),
-        datasets: [{ label: 'Saves & Retained', data: repEntries.map(function(e){return e[1];}),
+        datasets: [{ label: 'Saves & Retained', data: repEntries.map(function(e){return \e[1];}),
           backgroundColor: ['#4338ca','#10b981','#f59e0b','#ef4444','#7c3aed','#0891b2'],
           borderRadius: 6 }]
       },
@@ -549,4 +549,49 @@ function statusBadge(s) {
   else if (/refund/i.test(s)) cls = 'badge-amber';
   else if (/terminat/i.test(s)) cls = 'badge-red';
   else if (/past due/i.test(s)) cls = 'badge-amber';
-  return '<span class="badge ' + cls + '">' + esc(s) + '</span
+  return '<span class="badge ' + cls + '">' + esc(s) + '</span>';
+}
+
+function resoBadge(s) {
+  if (!s) return '<span class="badge badge-gray">-</span>';
+  var cls = 'badge-gray';
+  if (/cancel/i.test(s)) cls = 'badge-red';
+  else if (/refund/i.test(s)) cls = 'badge-amber';
+  else if (/save|retain|dg|prorate|accept/i.test(s)) cls = 'badge-green';
+  else if (/escalat/i.test(s)) cls = 'badge-purple';
+  return '<span class="badge ' + cls + '">' + esc(s) + '</span>';
+}
+
+function countBy(arr, key) {
+  var acc = {};
+  arr.forEach(function(r) { var v = r[key] || ''; acc[v] = (acc[v] || 0) + 1; });
+  return acc;
+}
+function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete charts[key]; } }
+function setText(id, val) { document.getElementById(id).textContent = val; }
+function pad(n) { return String(n).padStart(2, '0'); }
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function updateLastUpdated() {
+  fetch('./data/last_updated.txt?t=' + Date.now())
+    .then(function(r) { return r.ok ? r.text() : null; })
+    .then(function(t) {
+      var el = document.getElementById('lastUpdated');
+      if (t) {
+        var d = new Date(t.trim());
+        el.textContent = 'Data updated: ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      } else {
+        el.textContent = 'Loaded: ' + new Date().toLocaleDateString();
+      }
+    })
+    .catch(function() {
+      document.getElementById('lastUpdated').textContent = 'Loaded: ' + new Date().toLocaleDateString();
+    });
+}
+
+loadData();
+</script>
+</body>
+</html>
