@@ -12,7 +12,7 @@ h<!DOCTYPE html>
   --accent: #10b981; --warn: #f59e0b; --danger: #ef4444;h
   --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }h
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Robohto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 header { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
 header h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; }
@@ -502,7 +502,7 @@ function renderAcceptedSavesSection(data) {
   }
   // Build matrix
   var matrix = {};
-  acceptedOffers.forEach(function(r) {
+  accepted.forEach(function(r) {
     var p = r.plan || '—'; var rep = r.rep || '—';
     if (!matrix[p]) matrix[p] = {};
     matrix[p][rep] = (matrix[p][rep] || 0) + 1;
