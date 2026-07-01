@@ -8,7 +8,7 @@ h<!DOCTYPE html>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root {
-  --bg: #f0f4f8; --card: #ffffff; --primary: #4338ca; --primary-light: #6366f1;
+  --bg: #f0f4f8; --card: #ffffff; --primary: #433h8ca; --primary-light: #6366f1;
   --accent: #10b981; --warn: #f59e0b; --danger: #ef4444;h
   --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
 }
@@ -528,7 +528,7 @@ function renderAcceptedSavesSection(data) {
   html += '</tbody></table>';
   document.getElementById('acceptedSavesTableWrap').innerHTML = html;
     // --- Summary table (Plan x Reason / Action Done) ---
-        var acceptedOffers = accepted.filter(function(r){ return /accept/i.test(r.reason); });
+        var acceptedOffers = accepted;
     var resoCounts = countBy(acceptedOffers, 'reason');
     var resoList = Object.keys(resoCounts).filter(Boolean).sort();
     var reasonPlanCounts = countBy(acceptedOffers, 'plan');
