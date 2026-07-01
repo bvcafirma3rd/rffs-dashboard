@@ -536,7 +536,7 @@ function renderAcceptedSavesSection(data) {
         var resoMatrix = {};
     acceptedOffers.forEach(function(r) {
           var p = r.plan || '-'; var rs = r.reason || '-';
-          if (!resoMatrix[p]) resoMatrix[p] = {};h
+          if (!resoMatrix[p]) resoMatrix[p] = {};
           resoMatrix[p][rs] = (resoMatrix[p][rs] || 0) + 1;
     });
     var html2 = '<table><thead><tr><th>Plan</th>';
