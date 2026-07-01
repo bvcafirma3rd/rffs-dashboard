@@ -502,7 +502,7 @@ function renderAcceptedSavesSection(data) {
   }
   // Build matrix
   var matrix = {};
-  accepted.forEach(function(r) {
+  acceptedOffers.forEach(function(r) {
     var p = r.plan || '—'; var rep = r.rep || '—';
     if (!matrix[p]) matrix[p] = {};
     matrix[p][rep] = (matrix[p][rep] || 0) + 1;
@@ -527,25 +527,23 @@ function renderAcceptedSavesSection(data) {
   html += '<td style="text-align:center;font-weight:800;color:#0891b2">' + accepted.length + '</td></tr>';
   html += '</tbody></table>';
   document.getElementById('acceptedSavesTableWrap').innerHTML = html;
-}
-
-function renderTicketTable(data) {
-  var rows = data.slice().sort(function(a,b){return b.date-a.date;}).slice(0,50);
-
     // --- Summary table (Plan x Reason / Action Done) ---
-    var resoCounts = countBy(accepted, 'reso');
+        var acceptedOffers = accepted.filter(function(r){ return /accept/i.test(r.reason); });
+    var resoCounts = countBy(acceptedOffers, 'reason');
     var resoList = Object.keys(resoCounts).filter(Boolean).sort();
-    var resoMatrix = {};
-    accepted.forEach(function(r) {
-          var p = r.plan || '-'; var rs = r.reso || '-';
-          if (!resoMatrix[p]) resoMatrix[p] = {};
+    var reasonPlanCounts = countBy(acceptedOffers, 'plan');
+        var reasonPlans = Object.keys(reasonPlanCounts).filter(Boolean).sort(function(a,b){return (reasonPlanCounts[b]||0)-(reasonPlanCounts[a]||0);});
+        var resoMatrix = {};
+    acceptedOffers.forEach(function(r) {
+          var p = r.plan || '-'; var rs = r.reason || '-';
+          if (!resoMatrix[p]) resoMatrix[p] = {};h
           resoMatrix[p][rs] = (resoMatrix[p][rs] || 0) + 1;
     });
     var html2 = '<table><thead><tr><th>Plan</th>';
     resoList.forEach(function(rs) { html2 += '<th>' + esc(rs) + '</th>'; });
     html2 += '<th>Total</th></tr></thead><tbody>';
-    plans.forEach(function(plan) {
-          var rowTotal = planCounts[plan] || 0;
+    reasonPlans.forEach(function(plan) {
+          var rowTotal = reasonPlanCounts[plan] || 0;
           html2 += '<tr><td><strong>' + esc(plan) + '</strong></td>';
           resoList.forEach(function(rs) {
                   html2 += '<td style="text-align:center">' + ((resoMatrix[plan] && resoMatrix[plan][rs]) || '-') + '</td>';
@@ -554,10 +552,10 @@ function renderTicketTable(data) {
     });
     html2 += '<tr style="background:#f0f9ff"><td><strong>Grand Total</strong></td>';
     resoList.forEach(function(rs) {
-          var total = accepted.filter(function(r){return r.reso===rs;}).length;
+          var total = acceptedOffers.filter(function(r){return r.reason===rs;}).length;
           html2 += '<td style="text-align:center;font-weight:700">' + (total||'-') + '</td>';
     });
-    html2 += '<td style="text-align:center;font-weight:800;color:#0891b2">' + accepted.length + '</td></tr>';
+    html2 += '<td style="text-align:center;font-weight:800;color:#0891b2">' + acceptedOffers.length + '</td></tr>';
     html2 += '</tbody></table>';
     document.getElementById('acceptedSavesReasonTableWrap').innerHTML = html2;
 }
