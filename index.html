@@ -258,7 +258,7 @@ function parseCSV(csvText) {
       rep:    (r[K_REP]    || '').trim()
     };
   }).filter(function(r) {
-    return r.rep && r.date && !isNaN(r.date.getTime());
+    return r.rep && r.date && !isNaN(r.date.getTime()) && ['Cancelled','Refunded','Terminated'].indexOf(r.status) !== -1;
   });
 
   if (!allData.length) {
