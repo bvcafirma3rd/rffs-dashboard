@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+h<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -9,7 +9,7 @@
 <style>
 :root {
   --bg: #f0f4f8; --card: #ffffff; --primary: #4338ca; --primary-light: #6366f1;
-  --accent: #10b981; --warn: #f59e0b; --danger: #ef4444;
+  --accent: #10b981; --warn: #f59e0b; --danger: #ef4444;h
   --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -156,6 +156,10 @@ tbody tr:hover td { background: #fafbff; }
         </div>
         <div id="acceptedSavesTableWrap" style="margin-top:18px;overflow-x:auto"></div>
       </div>
+            <div class="chart-card full" style="margin-top:22px">
+                      <h3>&#128203; Saves &amp; Retained &mdash; by Plan &amp; Reason (Action Done)</h3>
+                    <div id="acceptedSavesReasonTableWrap" style="margin-top:14px;overflow-x:auto"></div>
+            </div>
     </div>
   </div>
 </div>
@@ -527,7 +531,40 @@ function renderAcceptedSavesSection(data) {
 
 function renderTicketTable(data) {
   var rows = data.slice().sort(function(a,b){return b.date-a.date;}).slice(0,50);
-  document.getElementById('ticketTableBody').innerHTML = rows.map(function(r) {
+
+    // --- Summary table (Plan x Reason / Action Done) ---
+    var resoCounts = countBy(accepted, 'reso');
+    var resoList = Object.keys(resoCounts).filter(Boolean).sort();
+    var resoMatrix = {};
+    accepted.forEach(function(r) {
+          var p = r.plan || '-'; var rs = r.reso || '-';
+          if (!resoMatrix[p]) resoMatrix[p] = {};
+          resoMatrix[p][rs] = (resoMatrix[p][rs] || 0) + 1;
+    });
+    var html2 = '<table><thead><tr><th>Plan</th>';
+    resoList.forEach(function(rs) { html2 += '<th>' + esc(rs) + '</th>'; });
+    html2 += '<th>Total</th></tr></thead><tbody>';
+    plans.forEach(function(plan) {
+          var rowTotal = planCounts[plan] || 0;
+          html2 += '<tr><td><strong>' + esc(plan) + '</strong></td>';
+          resoList.forEach(function(rs) {
+                  html2 += '<td style="text-align:center">' + ((resoMatrix[plan] && resoMatrix[plan][rs]) || '-') + '</td>';
+          });
+          html2 += '<td style="text-align:center;font-weight:700;color:#0891b2">' + rowTotal + '</td></tr>';
+    });
+    html2 += '<tr style="background:#f0f9ff"><td><strong>Grand Total</strong></td>';
+    resoList.forEach(function(rs) {
+          var total = accepted.filter(function(r){return r.reso===rs;}).length;
+          html2 += '<td style="text-align:center;font-weight:700">' + (total||'-') + '</td>';
+    });
+    html2 += '<td style="text-align:center;font-weight:800;color:#0891b2">' + accepted.length + '</td></tr>';
+    html2 += '</tbody></table>';
+    document.getElementById('acceptedSavesReasonTableWrap').innerHTML = html2;
+}
+  
+  function renderTicketTable(data) {
+      var rows = data.slice().sort(function(a,b){return b.date-a.date;}).slice(0,50);
+      document.getElementById('ticketTableBody').innerHTML = rows.map(function(r) {
     return '<tr>' +
       '<td>' + fmtDate(r.date) + '</td>' +
       '<td><strong>' + esc(r.rep) + '</strong></td>' +
