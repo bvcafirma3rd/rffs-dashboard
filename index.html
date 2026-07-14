@@ -85,8 +85,7 @@ tbody tr:hover td { background: #fafbff; }
   <div id="lastUpdated"></div>
 </header>
 <div class="controls">
-  <div class="ctrl-group"><span class="ctrl-label">From</span><input type="date" id="dateFrom"></div>
-  <div class="ctrl-group"><span class="ctrl-label">To</span><input type="date" id="dateTo"></div>
+  <div class="ctrl-group"><span class="ctrl-label">Month</span><input type="month" id="monthFilter"></div>
   <div class="ctrl-group">
     <span class="ctrl-label">Rep</span>
     <select id="repFilter"><option value="">All Reps</option></select>
@@ -326,8 +325,9 @@ function fillSelect(id, options, placeholder) {
 
 function setDefaultDateRange() {
   var dates = allData.map(function(r) { return r.date; }).sort(function(a, b) { return a - b; });
-  document.getElementById('dateFrom').value = dateInput(dates[0]);
-  document.getElementById('dateTo').value = dateInput(dates[dates.length - 1]);
+  var latest = dates[dates.length - 1];
+  var mm = String(latest.getMonth() + 1).padStart(2, '0');
+  document.getElementById('monthFilter').value = latest.getFullYear() + '-' + mm;
 }
 
 function applyFilters() { renderAll(); }
@@ -340,16 +340,12 @@ function resetFilters() {
 }
 
 function getFiltered() {
-  var fromVal = document.getElementById('dateFrom').value;
-  var toVal = document.getElementById('dateTo').value;
-  var from = fromVal ? new Date(fromVal) : null;
-  var to = toVal ? new Date(toVal + 'T23:59:59') : null;
+  var monthVal = document.getElementById('monthFilter').value;
   var rep = document.getElementById('repFilter').value;
   var lob = document.getElementById('lobFilter').value;
   var status = document.getElementById('statusFilter').value;
   return allData.filter(function(r) {
-    if (from && r.date < from) return false;
-    if (to && r.date > to) return false;
+    if (monthVal) { var p=monthVal.split('-'); if(r.date.getFullYear()!==+p[0]||r.date.getMonth()!==+p[1]-1) return false; }
     if (rep && r.rep !== rep) return false;
     if (lob && r.lob !== lob) return false;
     if (status && r.status !== status) return false;
@@ -493,7 +489,7 @@ function renderAcceptedSavesSection(data) {
     });
   }
 
-  // --- Summary table (Plan ÃÂ Rep) ---
+  // --- Summary table (Plan ÃÂÃÂ Rep) ---
   var plans = planEntries.map(function(e){return e[0];});
   var reps  = repEntries.map(function(e){return e[0];});
   if (!plans.length) {
@@ -503,7 +499,7 @@ function renderAcceptedSavesSection(data) {
   // Build matrix
   var matrix = {};
   accepted.forEach(function(r) {
-    var p = r.plan || '—'; var rep = r.rep || '—';
+    var p = r.plan || 'â'; var rep = r.rep || 'â';
     if (!matrix[p]) matrix[p] = {};
     matrix[p][rep] = (matrix[p][rep] || 0) + 1;
   });
@@ -514,7 +510,7 @@ function renderAcceptedSavesSection(data) {
     var rowTotal = planCounts[plan] || 0;
     html += '<tr><td><strong>' + esc(plan) + '</strong></td>';
     reps.forEach(function(rep) {
-      html += '<td style="text-align:center">' + ((matrix[plan] && matrix[plan][rep]) || '—') + '</td>';
+      html += '<td style="text-align:center">' + ((matrix[plan] && matrix[plan][rep]) || 'â') + '</td>';
     });
     html += '<td style="text-align:center;font-weight:700;color:#0891b2">' + rowTotal + '</td></tr>';
   });
@@ -522,7 +518,7 @@ function renderAcceptedSavesSection(data) {
   html += '<tr style="background:#f0f9ff"><td><strong>Grand Total</strong></td>';
   reps.forEach(function(rep) {
     var total = accepted.filter(function(r){return r.rep===rep;}).length;
-    html += '<td style="text-align:center;font-weight:700">' + (total||'—') + '</td>';
+    html += '<td style="text-align:center;font-weight:700">' + (total||'â') + '</td>';
   });
   html += '<td style="text-align:center;font-weight:800;color:#0891b2">' + accepted.length + '</td></tr>';
   html += '</tbody></table>';
